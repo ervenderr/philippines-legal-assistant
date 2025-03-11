@@ -42,65 +42,6 @@ The project consists of two main components:
 - Modern web interface
 - Real-time search
 - Responsive design
-- Dark mode support
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.8+
-- Node.js 18+
-- npm or yarn
-- GPU recommended for better performance
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd philippines-legal-assistant
-```
-
-2. Set up the backend:
-
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Download required models
-python -m spacy download en_core_web_sm
-python data/qa_system.py
-```
-
-3. Set up the frontend:
-
-```bash
-cd frontend
-npm install
-```
-
-### Running the Application
-
-1. Start the backend server:
-
-```bash
-cd api
-uvicorn main:app --reload
-```
-
-2. Start the frontend development server:
-
-```bash
-cd frontend
-npm run dev
-```
-
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 📁 Project Structure
 
@@ -148,14 +89,6 @@ The frontend is built with:
 - Backend API documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Frontend documentation: See [frontend/README.md](frontend/README.md)
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -169,3 +102,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Next.js](https://nextjs.org/)
 - [Shadcn UI](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
+
+![Philippine Legal Assistant](https://github.com/user-attachments/assets/87fd1629-2949-4ebc-95f3-b5bcdbdf0478)
