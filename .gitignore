@@ -27,6 +27,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Node
 node_modules/
@@ -40,6 +43,18 @@ build/
 .turbo
 *.tsbuildinfo
 next-env.d.ts
+.npm
+.eslintcache
+.node_repl_history
+.yarn-integrity
+.env.development
+.env.test
+.env.production
+.env.local
+.next
+dist/
+coverage/
+.nyc_output/
 
 # Coverage
 coverage/
@@ -67,6 +82,16 @@ cover/
 .settings/
 *.sublime-workspace
 *.sublime-project
+.history/
+*.iml
+.vs/
+*.launch
+.settings/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Project specific
 data/raw/*
@@ -75,6 +100,9 @@ data/embeddings/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
+models/
+tmp/
+temp/
 
 # Logs
 logs/
@@ -84,6 +112,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+*.pid
+*.seed
+*.pid.lock
 
 # Local files
 *.local
@@ -94,4 +125,29 @@ lerna-debug.log*
 
 # System files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+.directory
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Dependencies
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Debug
+.debug/
+debug.log
+debug/
