@@ -27,6 +27,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+legal_env/
 .python-version
 pip-log.txt
 pip-delete-this-directory.txt
