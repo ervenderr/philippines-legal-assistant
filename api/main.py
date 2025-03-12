@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import sys
 import os
 from pathlib import Path
+from api.qa_service import QAService
+from api.document_service import DocumentService
 
 # Add the parent directory to Python path to import the QA system
 sys.path.append(str(Path(__file__).parent.parent))
@@ -25,11 +27,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize QA system
+# Initialize services
+qa_service = QAService()
+document_service = DocumentService()
+
+# For backward compatibility
 qa_system = LegalQASystem()
 
 class QuestionRequest(BaseModel):
     question: str
+    user_id: str
+    document_id: Optional[str] = None
     top_k: Optional[int] = 3
     threshold: Optional[float] = 0.5
 
@@ -40,9 +48,18 @@ class ChunkInfo(BaseModel):
 
 class AnswerResponse(BaseModel):
     answer: str
-    confidence: float
+    confidence: Optional[float] = None
     source: Optional[str] = None
     relevant_chunks: List[ChunkInfo] = []
+
+class DocumentResponse(BaseModel):
+    id: str
+    filename: str
+    status: str
+    metadata: Dict[str, Any] = {}
+
+class DocumentListResponse(BaseModel):
+    documents: List[DocumentResponse]
 
 @app.get("/")
 async def root():
@@ -52,7 +69,123 @@ async def root():
 @app.post("/api/query", response_model=AnswerResponse)
 async def query(request: QuestionRequest):
     """
-    Get an answer for a legal question.
+    Get an answer for a legal question based on user-uploaded documents.
+    
+    Args:
+        request: QuestionRequest object containing the question and user information
+        
+    Returns:
+        AnswerResponse object containing the answer and related information
+    """
+    try:
+        # Get document chunks for the user
+        chunks = document_service.get_document_chunks(
+            user_id=request.user_id,
+            document_id=request.document_id
+        )
+        
+        if not chunks:
+            return AnswerResponse(
+                answer="No documents found. Please upload documents first.",
+                confidence=0.0,
+                source=None,
+                relevant_chunks=[]
+            )
+        
+        # Get answer using QA service
+        try:
+            result = qa_service.answer_question(
+                question=request.question,
+                chunks=chunks,
+                top_k=request.top_k
+            )
+        except Exception as qa_error:
+            print(f"Error in QA service: {str(qa_error)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error processing question: {str(qa_error)}"
+            )
+        
+        # Transform chunks into response format
+        formatted_chunks = [
+            ChunkInfo(
+                text=chunk["text"],
+                source=chunk["source"],
+                similarity=chunk["similarity"]
+            )
+            for chunk in result.get("relevant_chunks", [])
+        ]
+        
+        # Return formatted response
+        return AnswerResponse(
+            answer=result["answer"],
+            confidence=0.0,  # Not provided by the new service
+            source=result.get("sources", [None])[0] if result.get("sources") else None,
+            relevant_chunks=formatted_chunks
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in query endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+@app.post("/api/upload", response_model=DocumentResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Upload a document for processing.
+    
+    Args:
+        file: The PDF file to upload
+        user_id: The ID of the user uploading the document
+        
+    Returns:
+        DocumentResponse object with document information
+    """
+    try:
+        result = await document_service.upload_document(file, user_id)
+        return DocumentResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/documents/{user_id}", response_model=DocumentListResponse)
+async def get_user_documents(user_id: str):
+    """
+    Get a list of documents for a user.
+    
+    Args:
+        user_id: The ID of the user
+        
+    Returns:
+        DocumentListResponse object with a list of documents
+    """
+    try:
+        documents = document_service.get_user_documents(user_id)
+        return DocumentListResponse(
+            documents=[DocumentResponse(**doc) for doc in documents]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sources/{user_id}")
+async def get_user_sources(user_id: str):
+    """Get list of all available document sources for a user."""
+    chunks = document_service.get_document_chunks(user_id)
+    return qa_service.get_sources(chunks)
+
+# Legacy endpoint for backward compatibility
+@app.post("/api/legacy/query", response_model=AnswerResponse)
+async def legacy_query(request: QuestionRequest):
+    """
+    Legacy endpoint for querying the system with pre-loaded documents.
     
     Args:
         request: QuestionRequest object containing the question and optional parameters
