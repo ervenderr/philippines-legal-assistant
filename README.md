@@ -1,23 +1,25 @@
 # Philippine Legal Assistant
 
-A comprehensive legal research tool that combines natural language processing and machine learning to analyze Philippine Supreme Court decisions. The system provides intelligent search capabilities and can answer questions about legal documents with relevant citations.
+A comprehensive legal research tool that combines natural language processing and machine learning to analyze Philippine legal documents. The system provides intelligent search capabilities and can answer questions about user-uploaded legal documents with relevant citations.
 
 ## 🌟 Features
 
-### Document Processing
+### Document Management
 
 - 📄 PDF text extraction and processing
+- 📤 User-specific document upload and storage
+- 🗑️ Document deletion functionality
 - 🔍 Automatic document sectioning (header, syllabus, decision, dispositive)
-- 🏷️ Named entity recognition for legal entities
 - 📊 Document metadata extraction and cataloging
 
 ### Search and Analysis
 
-- 🔎 Semantic search across documents
+- 🔎 Semantic search across uploaded documents
 - ❓ Question-answering capabilities
 - 📑 Document chunking and embedding
 - 💡 Context-aware responses
 - 📌 Source citations and relevant passages
+- 🧠 Local model processing (no API costs)
 
 ### User Interface
 
@@ -25,6 +27,7 @@ A comprehensive legal research tool that combines natural language processing an
 - 🌙 Dark mode support
 - ⚡ Real-time search results
 - 📱 Mobile-friendly design
+- 🔄 Document management interface
 
 ## 🏗️ Architecture
 
@@ -33,14 +36,16 @@ The project consists of two main components:
 ### Backend (Python/FastAPI)
 
 - Document processing pipeline
+- User-specific document storage
 - Machine learning models for text analysis
 - REST API endpoints
-- Database management
+- Local question-answering model
 
 ### Frontend (Next.js)
 
 - Modern web interface
 - Real-time search
+- Document upload and management
 - Responsive design
 
 ## 📁 Project Structure
@@ -48,15 +53,19 @@ The project consists of two main components:
 ```
 philippines-legal-assistant/
 ├── api/                    # FastAPI backend
-│   └── main.py            # API endpoints
+│   ├── main.py            # API endpoints
+│   ├── qa_service.py      # Question answering service
+│   └── document_service.py # Document management service
 ├── data/                  # Data processing modules
-│   ├── raw/               # Raw PDF documents
-│   ├── processed/         # Processed JSON files
-│   ├── embeddings/        # Document embeddings
-│   ├── create_catalog.py  # Document cataloging
 │   ├── document_parser.py # PDF processing
 │   ├── document_embeddings.py # Text embedding
 │   └── qa_system.py      # Question answering
+├── user_data/             # User-specific document storage
+│   └── [user_id]/         # Individual user directories
+│       ├── raw/           # Raw PDF documents
+│       ├── processed/     # Processed JSON files
+│       ├── embeddings/    # Document embeddings
+│       └── catalog.json   # User document catalog
 ├── frontend/             # Next.js frontend
 │   ├── src/             # Source code
 │   └── public/          # Static files
@@ -71,8 +80,10 @@ philippines-legal-assistant/
 The backend is built with FastAPI and uses several machine learning models:
 
 - Sentence transformers for text embeddings
-- Spacy for NLP tasks
 - Hugging Face transformers for question answering
+- Local DistilBERT model for answering questions
+
+> **Note:** The current local model (DistilBERT) has relatively low confidence levels compared to OpenAI models. This is a trade-off for having a free, locally-running solution without API costs.
 
 ### Frontend Development
 
@@ -83,6 +94,13 @@ The frontend is built with:
 - Tailwind CSS for styling
 - Shadcn UI components
 - next-themes for dark mode
+
+## 🚀 Usage
+
+1. **Upload Documents**: Upload your Philippine legal documents (Supreme Court decisions, laws, regulations)
+2. **Ask Questions**: Query your uploaded documents with natural language questions
+3. **Get Answers**: Receive answers with relevant citations and supporting evidence
+4. **Manage Documents**: Delete documents you no longer need
 
 ## 📚 Documentation
 
@@ -103,4 +121,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Shadcn UI](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
-![Philippine Legal Assistant](https://github.com/user-attachments/assets/87fd1629-2949-4ebc-95f3-b5bcdbdf0478)
+![Philippine Legal Assistant](ph-legal-assistance-ui.png)
+_Note: This is a placeholder image. Please replace it with an actual screenshot of your application._

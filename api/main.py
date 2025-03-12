@@ -181,6 +181,30 @@ async def get_user_sources(user_id: str):
     chunks = document_service.get_document_chunks(user_id)
     return qa_service.get_sources(chunks)
 
+@app.delete("/api/documents/{user_id}/{document_id}")
+async def delete_document(user_id: str, document_id: str):
+    """
+    Delete a document.
+    
+    Args:
+        user_id: The ID of the user
+        document_id: The ID of the document to delete
+        
+    Returns:
+        Success message or error
+    """
+    try:
+        success = document_service.delete_document(user_id, document_id)
+        if success:
+            return {"status": "success", "message": "Document deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Document not found")
+    except Exception as e:
+        print(f"Error deleting document: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error deleting document: {str(e)}")
+
 # Legacy endpoint for backward compatibility
 @app.post("/api/legacy/query", response_model=AnswerResponse)
 async def legacy_query(request: QuestionRequest):

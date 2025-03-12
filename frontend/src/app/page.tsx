@@ -8,6 +8,8 @@ import {
   Search,
   FileText,
   Upload,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,10 @@ export default function Home() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [activeTab, setActiveTab] = useState("search");
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null
+  );
 
   // Initialize user ID on first load
   useEffect(() => {
@@ -171,6 +177,41 @@ export default function Home() {
     }
   };
 
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!userId) return;
+
+    setIsDeleting(documentId);
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/documents/${userId}/${documentId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Delete error response:", errorData);
+        throw new Error(
+          errorData.detail ||
+            `Failed to delete document: ${response.status} ${response.statusText}`
+        );
+      }
+
+      // Reload documents after successful deletion
+      await loadUserDocuments();
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to delete document"
+      );
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-300 dark:from-gray-900 dark:via-gray-900 dark:to-black">
       {/* Header */}
@@ -237,7 +278,7 @@ export default function Home() {
                       <CardContent className="p-4">
                         <div className="flex items-center">
                           <FileText className="w-5 h-5 mr-3 text-primary" />
-                          <div className="truncate">
+                          <div className="truncate flex-1">
                             <p className="font-medium truncate">
                               {doc.filename}
                             </p>
@@ -249,6 +290,15 @@ export default function Home() {
                                 : "Processing..."}
                             </p>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => setShowDeleteConfirm(doc.id)}
+                            title="Delete document"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -349,7 +399,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="prose dark:prose-invert max-w-none">
-                      <p className="text-lg leading-relaxed">{answer.answer}</p>
+                      <p className="text-lg leading-relaxed whitespace-pre-line">
+                        {answer.answer}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -445,7 +497,7 @@ export default function Home() {
                       <CardContent className="p-4">
                         <div className="flex items-center">
                           <FileText className="w-8 h-8 mr-4 text-primary" />
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{doc.filename}</p>
                             <div className="flex items-center text-xs text-muted-foreground mt-1">
                               <Badge variant="outline" className="mr-2">
@@ -459,6 +511,15 @@ export default function Home() {
                               )}
                             </div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => setShowDeleteConfirm(doc.id)}
+                            title="Delete document"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -491,6 +552,48 @@ export default function Home() {
       <footer className="border-t-2 border-slate-200 dark:border-slate-800 mt-12 py-8 text-center text-sm text-muted-foreground bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm">
         <p>Philippine Legal Assistant - AI-powered legal research tool</p>
       </footer>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Confirm Deletion
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                Are you sure you want to delete this document? This action
+                cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(null)}
+                  disabled={isDeleting !== null}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteDocument(showDeleteConfirm)}
+                  disabled={isDeleting !== null}
+                >
+                  {isDeleting === showDeleteConfirm ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

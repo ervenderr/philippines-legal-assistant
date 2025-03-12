@@ -1,24 +1,31 @@
 from typing import List, Dict, Any, Optional
-import openai
-from sentence_transformers import SentenceTransformer
 import numpy as np
-from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 import os
 import json
 from pathlib import Path
+from dotenv import load_dotenv
 
 load_dotenv()
 
 class QAService:
     def __init__(self):
-        # Initialize OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-        openai.api_key = api_key
-        
         # Initialize embedding model for document retrieval
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        # Initialize a local question-answering pipeline
+        try:
+            # This will use a smaller model suitable for question answering
+            self.qa_pipeline = pipeline(
+                "question-answering",
+                model="distilbert-base-cased-distilled-squad",
+                tokenizer="distilbert-base-cased-distilled-squad"
+            )
+            print("Initialized local QA model successfully")
+        except Exception as e:
+            print(f"Error initializing QA pipeline: {str(e)}")
+            self.qa_pipeline = None
 
     def _get_relevant_chunks(self, query: str, chunks: List[Dict[str, Any]], top_k: int = 5) -> List[Dict[str, Any]]:
         """Retrieve most relevant document chunks for the query."""
@@ -56,9 +63,9 @@ class QAService:
         return context
 
     def answer_question(self, question: str, chunks: List[Dict[str, Any]], top_k: int = 5) -> Dict[str, Any]:
-        """Answer a question using GPT-4 with retrieved context."""
-        # Get relevant chunks
+        """Answer a question using a local model with retrieved context."""
         try:
+            # Get relevant chunks
             relevant_chunks = self._get_relevant_chunks(question, chunks, top_k)
             
             if not relevant_chunks:
@@ -69,41 +76,13 @@ class QAService:
                     "relevant_chunks": []
                 }
                 
+            # Format context
             context = self._format_context(relevant_chunks)
             
-            # Construct the prompt
-            system_prompt = """You are a legal assistant specialized in Philippine law. 
-            Answer questions based on the provided legal document excerpts.
-            Always cite your sources and be precise in your answers.
-            If you're not confident about an answer or if the context doesn't contain relevant information, say so.
-            Format your response in markdown."""
-
-            user_prompt = f"""Context from legal documents:
-            {context}
-
-            Question: {question}
-
-            Please provide a detailed answer with:
-            1. Direct answer to the question
-            2. Relevant citations from the provided context
-            3. Any important caveats or limitations"""
-
-            # Get response from GPT-4
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.2,  # Lower temperature for more focused answers
-                    max_tokens=1000
-                )
-            except Exception as openai_error:
-                print(f"OpenAI API error: {str(openai_error)}")
-                # Fallback to a simple response
+            # If QA pipeline is not available, return a simple response
+            if self.qa_pipeline is None:
                 return {
-                    "answer": f"I encountered an error while processing your question. Error: {str(openai_error)}",
+                    "answer": "I'm unable to process your question because the QA model is not available. Please check the server logs for more information.",
                     "sources": [chunk["source"] for chunk in relevant_chunks],
                     "context": context,
                     "relevant_chunks": [
@@ -115,23 +94,71 @@ class QAService:
                         for chunk in relevant_chunks
                     ]
                 }
-
-            # Extract sources
-            sources = [chunk["source"] for chunk in relevant_chunks]
             
-            return {
-                "answer": response.choices[0].message["content"],
-                "sources": sources,
-                "context": context,
-                "relevant_chunks": [
-                    {
-                        "text": chunk["text"],
-                        "source": chunk["source"],
-                        "similarity": chunk["similarity"]
-                    }
-                    for chunk in relevant_chunks
-                ]
-            }
+            # Use the local QA pipeline to get an answer
+            try:
+                # Combine all relevant chunks into a single context
+                combined_text = "\n\n".join([chunk["text"] for chunk in relevant_chunks])
+                
+                # Get answer from QA pipeline
+                result = self.qa_pipeline(
+                    question=question,
+                    context=combined_text,
+                )
+                
+                # Format the answer
+                answer = result["answer"]
+                confidence = result["score"]
+                
+                # Find the source chunk that contains the answer
+                source_chunk = None
+                for chunk in relevant_chunks:
+                    if answer in chunk["text"]:
+                        source_chunk = chunk
+                        break
+                
+                source = source_chunk["source"] if source_chunk else relevant_chunks[0]["source"]
+                
+                # Create a more comprehensive answer
+                comprehensive_answer = f"""
+Based on the provided documents, the answer is:
+
+{answer}
+
+This information comes from: {source}
+
+Confidence: {confidence:.2f}
+                """
+                
+                return {
+                    "answer": comprehensive_answer.strip(),
+                    "sources": [chunk["source"] for chunk in relevant_chunks],
+                    "context": context,
+                    "relevant_chunks": [
+                        {
+                            "text": chunk["text"],
+                            "source": chunk["source"],
+                            "similarity": chunk["similarity"]
+                        }
+                        for chunk in relevant_chunks
+                    ]
+                }
+            except Exception as model_error:
+                print(f"Model error: {str(model_error)}")
+                # Fallback to a simple response
+                return {
+                    "answer": f"I encountered an error while processing your question with the local model. Error: {str(model_error)}",
+                    "sources": [chunk["source"] for chunk in relevant_chunks],
+                    "context": context,
+                    "relevant_chunks": [
+                        {
+                            "text": chunk["text"],
+                            "source": chunk["source"],
+                            "similarity": chunk["similarity"]
+                        }
+                        for chunk in relevant_chunks
+                    ]
+                }
         except Exception as e:
             print(f"Error in answer_question: {str(e)}")
             import traceback

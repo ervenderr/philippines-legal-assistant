@@ -205,4 +205,42 @@ class DocumentService:
                     chunks = json.load(f)
                 all_chunks.extend(chunks)
         
-        return all_chunks 
+        return all_chunks
+        
+    def delete_document(self, user_id: str, document_id: str) -> bool:
+        """Delete a document and all associated files."""
+        user_dir = self.get_user_dir(user_id)
+        
+        # Paths to all files related to this document
+        raw_file = user_dir / "raw" / f"{document_id}.pdf"
+        processed_file = user_dir / "processed" / f"{document_id}.json"
+        embeddings_file = user_dir / "embeddings" / f"{document_id}.json"
+        
+        # Check if document exists
+        if not raw_file.exists() and not processed_file.exists() and not embeddings_file.exists():
+            return False
+            
+        # Delete files if they exist
+        if raw_file.exists():
+            raw_file.unlink()
+            
+        if processed_file.exists():
+            processed_file.unlink()
+            
+        if embeddings_file.exists():
+            embeddings_file.unlink()
+            
+        # Update catalog
+        catalog_path = user_dir / "catalog.json"
+        if catalog_path.exists():
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                catalog = json.load(f)
+                
+            # Remove document from catalog
+            catalog["documents"] = [doc for doc in catalog["documents"] if doc["id"] != document_id]
+            
+            # Save updated catalog
+            with open(catalog_path, "w", encoding="utf-8") as f:
+                json.dump(catalog, f, ensure_ascii=False, indent=2)
+                
+        return True 
