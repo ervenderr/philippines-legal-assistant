@@ -121,5 +121,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Shadcn UI](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
-![Philippine Legal Assistant](ph-legal-assistance-ui.png)
+![ph-legal-assistance-ui](https://github.com/user-attachments/assets/c3a69d6c-7d71-4d51-bf36-5d9f32bacc4b)
+
 _Note: This is a placeholder image. Please replace it with an actual screenshot of your application._
